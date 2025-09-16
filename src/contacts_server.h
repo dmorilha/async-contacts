@@ -17,11 +17,11 @@ using namespace std;
 template <class T>
 class shared_promise : public promise<T> {
 public:
-  shared_future<T> get_future(void) {
+  shared_future<T> * get_future(void) {
     if (!future_.valid()) {
       future_ = promise<T>::get_future();
     }
-    return future_;
+    return new shared_future<T>(future_);
   }
 
 private:

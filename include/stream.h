@@ -13,6 +13,12 @@ using namespace std;
  */
 template <class T> class stream {
 public:
+  ~stream() {
+    if (nullptr != current_) {
+      delete current_;
+      current_ = nullptr;
+    }
+  }
 
   /**
    * value is wrapped up in an instance of the entry class
@@ -20,36 +26,65 @@ public:
    */
   struct entry;
   struct entry {
-    shared_future<entry> next;
+    shared_future<entry> * next = nullptr;
     T value;
   };
 
   template <class ... A>
-  stream(A ... a) : current_(forward<A>(a)...) { }
+  stream(A ... a) : current_(std::forward<A>(a)...) { }
 
   /**
    * overrides std::future::get(void) method to follow the chain
    */
   T get(void) {
-    const entry e = current_.get();
-    current_ = e.next;
+    entry e;
+    if (nullptr != current_) {
+      try {
+        e = current_->get();
+      } catch (...) {
+        delete current_;
+        current_ = nullptr;
+        throw;
+      }
+      delete current_;
+      current_ = nullptr;
+      current_ = e.next;
+    }
     return e.value;
   }
 
   void wait(void) const {
-    current_.wait();
+    if (nullptr != current_) {
+      try {
+        current_->wait();
+      } catch (...) {
+        delete current_;
+        current_ = nullptr;
+        throw;
+      }
+    }
   }
 
   /**
    * why even bother? perfect forwarding to std::future::wait_for method.
    */
   template <class ... A>
-  auto wait_for(A ... a) const {
-    return current_.wait_for(forward<A>(a)...);
+  std::future_status wait_for(A ... a) {
+    std::future_status result;
+    if (nullptr != current_) {
+      try {
+      result = current_->wait_for(std::forward<A>(a)...);
+      } catch (...) {
+        delete current_;
+        current_ = nullptr;
+        throw;
+      }
+    }
+    return result;
   }
 
 private:
-  shared_future<entry> current_;
+  shared_future<entry> * current_ = nullptr;
 };
 
 } // end of namespace v1
