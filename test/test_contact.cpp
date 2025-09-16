@@ -1,6 +1,8 @@
 #include <chrono>
+#include <iostream>
 #include <random>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <cassert>
@@ -49,7 +51,7 @@ vector<Contact> parseJson(const string & s) {
       });
     }
   } catch (exception &) {
-    cerr << "error while parsing the json" << endl;
+    std::cerr << "error while parsing the json" << endl;
   }
   return contacts;
 }
@@ -127,7 +129,7 @@ TEST_CASE("listening for updates") {
     uniform_int_distribution<> dist(100, 501);
     unique_ptr<Contacts> client = Contacts::create(launch::async);
     for (const auto & item : contacts) {
-      this_thread::sleep_for(chrono::milliseconds(dist(mt)));
+      std::this_thread::sleep_for(chrono::milliseconds(dist(mt)));
       const auto result = client->addContact(item).get();
       REQUIRE(RESULT::SUCCESS == result);
     }
